@@ -166,7 +166,8 @@ void LifeGame::start(){
         if(!eventPoll(e)){
             return;
         }
-        if(timer>0.02){
+        
+        if(timer>0.04){
             timer=0;
             window.clear(c1);
             drawLines(window);
@@ -178,6 +179,9 @@ void LifeGame::start(){
     }
 }
 int LifeGame::cal(int i,int j){
+    if(i<3||i>RN||j<3||j>RM){
+        return 0;
+    }
     int ret=0;
     for(int m=-1;m<=1;m++){
         for(int n=-1;n<=1;n++){
