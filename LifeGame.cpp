@@ -84,14 +84,6 @@ bool LifeGame::eventPoll(Event& e){
                 window.close();
                 break;
             case Event::MouseButtonPressed:
-                // if(!sta){
-                //     pos=window.mapPixelToCoords(sf::Vector2i(e.mouseButton.x,e.mouseButton.y));
-                //     x_=pos.x/size_+mapEdge;
-                //     y_=pos.y/size_+mapEdge;
-                //     //cout<<pos.x<<" "<<pos.y<<endl;
-                //     //cout<<x_<<"  "<<y_<<endl;
-                //     world[y_][x_]=!world[y_][x_]; 
-                // }
                 timer=0;
                 break;
             case Event::MouseButtonReleased:
@@ -237,18 +229,6 @@ void LifeGame::calNeighbor(int i,int j){
 void LifeGame::updateWorld(){
     tem=world;
     int c=0;
-    // for(int i=1;i<N-1;i++){
-    //     for(int j=1;j<M-1;j++){
-    //         c=cal(i,j);
-    //         if(c==3){
-    //             world[i][j]=1;
-    //         }else if(c==2&&world[i][j]){
-    //             world[i][j]=1;
-    //         }else{
-    //             world[i][j]=0;
-    //         }
-    //     }
-    // }
     flag.clear();
     auto tem=alive;
     for(auto& it:tem){
@@ -257,16 +237,6 @@ void LifeGame::updateWorld(){
     }
 }
 void LifeGame::drawWorld(RenderWindow& window){
-    // for(int i=0;i<RM;i++){
-    //     for(int j=0;j<RN;j++){
-    //         if(world[j+mapEdge][i+mapEdge]){
-    //             rec.setFillColor(c3);
-    //             rec.setSize({size_-2*squareGap,size_-2*squareGap});
-    //             rec.setPosition(i*size_+squareGap,j*size_+squareGap);
-    //             window.draw(rec);
-    //         }
-    //     }
-    // }
     for(auto it:alive){
         if(it.first>=mapEdge&&it.second>=mapEdge){
             rec.setFillColor(c3);
@@ -290,16 +260,6 @@ void LifeGame::drawLines(RenderWindow& window){
         v[1].position=Vector2f(i*size_,RN*size_);
         window.draw(v);
     }
-    // for(int i=0;i<RM;i++){
-    //     for(int j=0;j<RN;j++){
-    //         v[0].position=Vector2f(i*size_,0);
-    //         v[1].position=Vector2f(i*size_,RN*size_);
-    //         window.draw(v);
-    //         v[0].position=Vector2f(0,i*size_);
-    //         v[1].position=Vector2f(RM*size_,i*size_);
-    //         window.draw(v);
-    //     }
-    // }
 }
 
 int main(){
