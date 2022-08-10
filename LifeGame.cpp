@@ -2,9 +2,15 @@
 #include<iostream>
 #include<set>
 #include<algorithm>
+#include<fstream>
+#include <boost/functional/hash.hpp>
+#include <unordered_set>
+#include <utility>
+
 using namespace std;
 using namespace sf;
 
+const int res=10000;
 class LifeGame{
     public:
         LifeGame(){
@@ -18,9 +24,15 @@ class LifeGame{
             c2=Color(66,80,102);
             c3=Color(30,132,73);
             world=vector<vector<int>>(N,vector<int>(M,0));
-            tem=world;
             d1=view.getSize().x/wsiz.x;
             d2=view.getSize().y/wsiz.y;
+            ifstream ifs("C:\\Users\\tomst\\Desktop\\LifeGame\\v.txt");
+            while(!ifs.eof()){
+                int a,b;
+                ifs>>a>>b;
+                alive.insert({a+500,b+500});
+                world[a+500][b+500]=1;
+            }
         }
         void run();
 
@@ -40,10 +52,15 @@ class LifeGame{
         const int size_=25;//格子大小
         const int M=RM+mapEdge*2;
         const int N=RN+mapEdge*2;
-        set<pair<int,int>> alive;
+        std::unordered_set<pair<int,int>,boost::hash<pair<int,int>>> alive;
+        //set<pair<int,int>> alive;
         set<pair<int,int>> flag;
+        vector<pair<int,int>> add_;
+        vector<pair<int,int>> minus_;
         vector<vector<int>> world;
-        vector<vector<int>> tem;
+        vector<vector<int>> tem_;
+        set<pair<int,int>> tem;
+        vector<pair<int,int>> vis;
         RectangleShape rec;
         const float squareGap=0.5;
         Vector2i mousepos=Mouse::getPosition(window);
@@ -51,14 +68,18 @@ class LifeGame{
         Vector2i mpos;
         Color c3; 
         float timer=0;
+        float runtimer=0;
         void start();
-        int cal(int i,int j);
+        inline int cal(int i,int j);
         void updateWorld();
         void drawWorld(RenderWindow& window);
         void drawLines(RenderWindow& window);
+        void drawWorld1(RenderWindow& window);
+        void updateWorld1();
         void config();
         bool eventPoll(Event& e);
         void calNeighbor(int i,int j);
+        vector<pair<int,int>> vp;
 };
 void LifeGame::run(){
     while(window.isOpen()){
@@ -87,14 +108,12 @@ bool LifeGame::eventPoll(Event& e){
                 timer=0;
                 break;
             case Event::MouseButtonReleased:
-                if(timer<0.4){
+                if(timer<0.28){
                     timer=0;
                     if(!sta){
                         pos=window.mapPixelToCoords(sf::Vector2i(e.mouseButton.x,e.mouseButton.y));
                         x_=pos.x/size_+mapEdge;
                         y_=pos.y/size_+mapEdge;
-                        //cout<<pos.x<<" "<<pos.y<<endl;
-                        //cout<<x_<<"  "<<y_<<endl;
                         if(world[y_][x_]){
                             world[y_][x_]=!world[y_][x_];
                             alive.erase({y_,x_});
@@ -107,22 +126,28 @@ bool LifeGame::eventPoll(Event& e){
                 break;
             case Event::KeyPressed:
                 if(e.key.code==Keyboard::Q){
+                    if(!sta){
+                        ofstream out("C:\\Users\\tomst\\Desktop\\LifeGame\\v.txt");
+                        for(auto it:alive){
+                            out<<it.first-500<<" "<<it.second-500<<endl;
+                        }
+                        out.close();
+                    }
                     sta=!sta;
                     return false;
                 }
                 break;
             case Event::MouseWheelScrolled:
                 if(e.mouseWheelScroll.delta<0){
-                    cout<<-1<<" "<<e.mouseWheelScroll.delta<<endl;
+                    //cout<<-1<<" "<<e.mouseWheelScroll.delta<<endl;
                     for(int i=0;i<-e.mouseWheelScroll.delta;i++){
                         view.zoom(1.05);
                     }
                 }else if(e.mouseWheelScroll.delta>0){
-                    cout<<1<<" "<<e.mouseWheelScroll.delta<<endl;
+                    //cout<<1<<" "<<e.mouseWheelScroll.delta<<endl;
                     for(int i=0;i<e.mouseWheelScroll.delta;i++){
                         view.zoom(0.95);
                     }
-                    
                 }
                 d1=view.getSize().x/wsiz.x;
                 d2=view.getSize().y/wsiz.y;
@@ -161,13 +186,14 @@ void LifeGame::start(){
     Clock clock;
     while(window.isOpen()){
         timer+=clock.getElapsedTime().asSeconds();
+        runtimer+=clock.getElapsedTime().asSeconds();
         clock.restart();
         Event e;
         if(!eventPoll(e)){
             return;
         }
         
-        if(timer>0.04){
+        if(timer>0.03){
             timer=0;
             window.clear(c1);
             drawLines(window);
@@ -179,14 +205,14 @@ void LifeGame::start(){
     }
 }
 int LifeGame::cal(int i,int j){
-    if(i<3||i>RN||j<3||j>RM){
+    if(i<1||i>RN||j<1||j>RM){
         return 0;
     }
     int ret=0;
     for(int m=-1;m<=1;m++){
         for(int n=-1;n<=1;n++){
             if(m||n){
-                if(tem[i+m][j+n]){
+                if(world[i+m][j+n]==1){
                     ret++;
                 }
             }
@@ -196,51 +222,54 @@ int LifeGame::cal(int i,int j){
 }
 void LifeGame::calNeighbor(int i,int j){
     int c=cal(i,j);
-    if(c==3){
-        world[i][j]=1;
-        alive.insert({i,j});
-    }else if(c==2&&world[i][j]){
-        world[i][j]=1;
-        alive.insert({i,j});
-    }else{
-        world[i][j]=0;
-        alive.erase({i,j});
+    if(c>3||c<2){
+        minus_.push_back({i,j});
     }
     int tem1,tem2;
     for(int m=-1;m<=1;m++){
         for(int n=-1;n<=1;n++){
-            if(m||n){
-                tem1=i+m;
-                tem2=j+n;
-                if(flag.find({tem1,tem2})==flag.end()){
-                    flag.insert({tem1,tem2});
-                    int c=cal(tem1,tem2);
-                    if(c==3){
-                        world[tem1][tem2]=1;
-                        alive.insert({tem1,tem2});
-                    }else if(c==2&&world[tem1][tem2]){
-                        world[tem1][tem2]=1;
-                        alive.insert({tem1,tem2});
-                    }else{
-                        world[tem1][tem2]=0;
-                        alive.erase({tem1,tem2});
-                    }
+            tem1=i+m;
+            tem2=j+n;
+            if(!world[tem1][tem2]&&(m||n)){
+                world[tem1][tem2]=-1;
+                vis.push_back({tem1,tem2});
+                int c=cal(tem1,tem2);
+                if(c==3){
+                    add_.push_back({tem1,tem2});
                 }
             }
         }
     }
 }
 void LifeGame::updateWorld(){
-    tem=world;
+    if(alive.size()>100000){
+        cout<<runtimer<<endl;
+        cout<<alive.size()<<endl;
+        exit(0);
+    }
     int c=0;
-    flag.clear();
-    auto tem=alive;
-    for(auto& it:tem){
-        flag.insert(it);
+    for(auto& it:alive){
         calNeighbor(it.first,it.second);
     }
+    for(auto& it:vis){
+        world[it.first][it.second]=0;
+    }
+    for(auto& it:add_){
+        alive.insert(it);
+        world[it.first][it.second]=1;
+    }
+    for(auto& it:minus_){
+        alive.erase(it);
+        world[it.first][it.second]=0;
+    }
+    vis.clear();
+    add_.clear();
+    minus_.clear();
 }
 void LifeGame::drawWorld(RenderWindow& window){
+    float gap=(alive.size()*1.0/res)+1;
+    int tem=gap;
+    
     for(auto it:alive){
         if(it.first>=mapEdge&&it.second>=mapEdge){
             rec.setFillColor(c3);
